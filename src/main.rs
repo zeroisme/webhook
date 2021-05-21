@@ -118,7 +118,11 @@ async fn alert(notification: web::Json<Notification>) -> impl Responder {
     };
     let dingtalk_webhook = DingTalkWebhook::new(url, access_token);
     // 接收通知
-    let notification = notification.into_inner();
+    let mut notification = notification.into_inner();
+    if let Ok(alertmanager_url) = std::env::var("alertmanager_url") {
+        notification.external_url = alertmanager_url;
+    }
+        
     match render_template(&notification){
         Ok(content) => { 
             match dingtalk_webhook.send(content).await {
@@ -160,7 +164,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::new("%a %{User-Agent}i"))
             .service(alert)
     })
-    .bind("127.0.0.1:8080")?
+    .bind("0.0.0.0:8080")?
     .run()
     .await
 }
